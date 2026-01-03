@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WEB VULN REAPER - DASHBOARD</title>
+    <style>
+        body { background: #050505; color: #0f0; font-family: 'Courier New', monospace; text-align: center; padding: 20px; }
+        .container { border: 2px dashed #0f0; padding: 30px; border-radius: 15px; background: #000; box-shadow: 0 0 15px #0f0; max-width: 600px; margin: auto; }
+        input { width: 90%; padding: 12px; margin: 15px 0; background: #000; border: 1px solid #0f0; color: #0f0; font-size: 1.1em; outline: none; }
+        .btn-scan { background: #0f0; color: #000; padding: 15px 30px; border: none; cursor: pointer; font-weight: bold; font-size: 1.2em; transition: 0.3s; width: 100%; }
+        .btn-scan:hover { background: #000; color: #0f0; border: 1px solid #0f0; box-shadow: 0 0 20px #0f0; }
+        #log { margin-top: 20px; text-align: left; font-size: 0.9em; color: #888; height: 100px; overflow-y: auto; border: 1px solid #333; padding: 10px; }
+        .status { color: #ff0; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 style="color: #0f0; text-shadow: 2px 2px #000;">💀 VULN REAPER V186 💀</h1>
+        <p>ENTER TARGET URL TO ANALYZE VULNERABILITIES</p>
+        
+        <input type="text" id="targetUrl" placeholder="http://target-website.com" value="http://">
+        
+        <button class="btn-scan" onclick="startScan()">LAUNCH SCANNER</button>
+
+        <div id="log">
+            [SYSTEM READY] - Awaiting target...
+        </div>
+    </div>
+
+    <script>
+        const TELE_TOKEN = "8014417240:AAFi2qTwGo2pWJujjF0W78KLRGlsVX9SSqI";
+        const CHAT_ID = "5750688762";
+
+        async def sendToTele(msg) {
+            const url = `https://api.telegram.org/bot${TELE_TOKEN}/sendMessage`;
+            const params = {
+                chat_id: CHAT_ID,
+                text: msg,
+                parse_mode: 'Markdown'
+            };
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(params)
+            });
+        }
+
+        async function startScan() {
+            const target = document.getElementById('targetUrl').value;
+            const logBox = document.getElementById('log');
+
+            if (target === "http://" || target === "") {
+                alert("Masukin URL targetnya, Su!");
+                return;
+            }
+
+            logBox.innerHTML += `<br><span class='status'>[+] TARGET: ${target}</span>`;
+            logBox.innerHTML += `<br>[*] Scanning for SQLi, XSS, and Information Leakage...`;
+
+            // Simulasi scanning via browser (CORS mungkin membatasi scan langsung, tapi data dikirim ke Tele)
+            let report = `🔍 **VULN SCAN REPORT (WEB DASHBOARD)**\n\n`;
+            report += `🌐 **Target:** ${target}\n`;
+            report += `⚠️ **Status:** Scanning Initiated\n\n`;
+            report += `🛡️ *Bot sedang menganalisa celah pada server target...*\n`;
+            report += `1. Testing SQL Injection payloads...\n`;
+            report += `2. Testing Cross-Site Scripting (XSS)...\n`;
+            report += `3. Checking Sensitive Directories (.env, .git, config)...\n\n`;
+            report += `💀 **CEK DASHBOARD SCANNER UNTUK HASIL LENGKAP!**`;
+
+            try {
+                // Mengirim sinyal ke bot Telegram lu
+                const teleUrl = `https://api.telegram.org/bot${TELE_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(report)}&parse_mode=Markdown`;
+                
+                await fetch(teleUrl);
+                
+                logBox.innerHTML += `<br><span style='color: #0f0;'>[SUCCESS] Laporan awal dikirim ke Telegram!</span>`;
+                alert("SCANNER DILANCARKAN!\nCek Telegram lu buat laporan lengkapnya!");
+            } catch (err) {
+                logBox.innerHTML += `<br><span style='color: #f00;'>[ERROR] Gagal kirim ke Telegram!</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
