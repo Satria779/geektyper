@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>XORA Mini</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0a0e1a; color: #e5e7eb; min-height: 100vh;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  h1 { color: #ff69b4; margin: 0 0 4px; font-size: 28px; }
+  .sub { color: #6b7280; font-size: 13px; margin-bottom: 24px; }
+  .card {
+    background: #111827; border: 1px solid #1f2937;
+    border-radius: 12px; padding: 20px; margin-bottom: 20px;
+  }
+  label { font-size: 13px; color: #9ca3af; display: block; margin-bottom: 4px; }
+  input, select {
+    background: #0a0e1a; border: 1px solid #374151; color: #e5e7eb;
+    padding: 8px 12px; border-radius: 8px; font-size: 14px; width: 100%;
+  }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+  button {
+    background: linear-gradient(135deg, #ff69b4, #ff1493);
+    border: none; color: white; padding: 10px 20px;
+    border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.stop { background: #dc2626; }
+  .progress {
+    background: #1f2937; height: 8px; border-radius: 4px; overflow: hidden; margin: 12px 0;
+  }
+  .progress > div {
+    background: linear-gradient(90deg, #ff69b4, #ff1493);
+    height: 100%; transition: width 0.3s;
+  }
+  .log {
+    max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px;
+    background: #030712; padding: 12px; border-radius: 8px;
+  }
+  .log-row { padding: 4px 0; border-bottom: 1px solid #1f2937; display: flex; gap: 10px; }
+  .badge {
+    padding: 2px 8px; border-radius: 6px; font-size: 11px;
+    font-weight: 700; display: inline-block;
+  }
+  .r-UNIK       { background: #fbbf24; color: #000; }
+  .r-SCARSE\    { background: #ec4899; color: #fff; }
+  .r-SCARSE     { background: #f9a8d4; color: #000; }
+  .r-MYTICH     { background: #ec4899; color: #fff; }
+  .r-MYTICH\\+  { background: #d946ef; color: #fff; }
+  .r-LEGENDARY  { background: #ef4444; color: #fff; }
+  .r-EPIC       { background: #06b6d4; color: #000; }
+  .r-RARE       { background: #facc15; color: #000; }
+  .r-RARE\\+    { background: #3b82f6; color: #fff; }
+  .r-JELEKBET   { background: #6b7280; color: #fff; }
+  .r-NAJISNYO   { background: #1f2937; color: #9ca3af; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .stat-box { background: #0a0e1a; padding: 10px; border-radius: 8px; text-align: center; }
+  .stat-box b { display: block; font-size: 20px; }
+  .stat-box small { color: #6b7280; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🌸 XORA Mini</h1>
+  <div class="sub">Generate & lihat hasil — versi web</div>
+
+  <!-- Form -->
+  <div class="card">
+    <div class="grid">
+      <div><label>Region</label>
+        <select id="region">
+          <option>ID</option><option>ME</option><option>IND</option>
+          <option>VN</option><option>TH</option><option>BD</option>
+          <option>PK</option><option>TW</option><option>CIS</option>
+          <option>SAC</option><option>BR</option>
+        </select>
+      </div>
+      <div><label>Jumlah</label><input id="count" type="number" value="20"></div>
+      <div><label>Threads</label><input id="threads" type="number" value="20"></div>
+      <div><label>Prefix</label><input id="prefix" value="XORA"></div>
+    </div>
+    <button id="btnStart">▶ Start Generate</button>
+    <button id="btnStop" class="stop" style="display:none">■ Stop</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="card" id="progressCard" style="display:none">
+    <div style="display:flex; justify-content:space-between; margin-bottom:6px">
+      <span id="progressLabel">0 / 0</span>
+      <span id="statusLabel">running</span>
+    </div>
+    <div class="progress"><div id="progressBar" style="width:0%"></div></div>
+    <div class="stats" id="statsBox" style="margin-top:14px"></div>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; margin-bottom:10px">
+      <b>Live Log</b>
+      <button onclick="refreshAccounts()" style="padding:6px 12px;font-size:12px">🔄 Refresh Accounts</button>
+    </div>
+    <div class="log" id="logBox"><div style="color:#6b7280">Belum ada aktivitas...</div></div>
+  </div>
+
+  <!-- Accounts -->
+  <div class="card">
+    <b>Hasil Tersimpan</b>
+    <div id="accountsBox" style="margin-top:12px; color:#6b7280">Klik "Refresh Accounts"</div>
+  </div>
+</div>
+
+<script>
+const API = ""; // same-origin
+let currentJob = null, pollTimer = null;
+
+const rarityClass = (r) => "r-" + r.replace("+", "\\+");
+
+async function startGenerate() {
+  const body = {
+    count: +document.getElementById("count").value,
+    region: document.getElementById("region").value,
+    threads: +document.getElementById("threads").value,
+    name_prefix: document.getElementById("prefix").value,
+  };
+  const res = await fetch(API + "/api/generate", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  currentJob = data.job_id;
+  document.getElementById("btnStart").disabled = true;
+  document.getElementById("btnStop").style.display = "inline-block";
+  document.getElementById("progressCard").style.display = "block";
+  pollJob();
+  pollTimer = setInterval(pollJob, 1000);
+}
+
+async function stopGenerate() {
+  if (!currentJob) return;
+  await fetch(API + "/api/jobs/" + currentJob + "/stop", { method: "POST" });
+  clearInterval(pollTimer);
+  document.getElementById("btnStart").disabled = false;
+  document.getElementById("btnStop").style.display = "none";
+}
+
+async function pollJob() {
+  if (!currentJob) return;
+  const res = await fetch(API + "/api/jobs/" + currentJob);
+  const j = await res.json();
+
+  const pct = j.target ? (j.ok / j.target * 100) : 0;
+  document.getElementById("progressLabel").textContent = `${j.ok} / ${j.target}`;
+  document.getElementById("statusLabel").textContent = j.status;
+  document.getElementById("progressBar").style.width = pct + "%";
+
+  const sb = document.getElementById("statsBox");
+  sb.innerHTML = Object.entries(j.rarity_counts || {})
+    .map(([r, c]) => `<div class="stat-box"><b>${c}</b><small>${r}</small></div>`).join("");
+
+  const lb = document.getElementById("logBox");
+  lb.innerHTML = (j.log || []).slice().reverse().map(x =>
+    `<div class="log-row">
+      <span class="badge ${rarityClass(x.rarity)}">${x.rarity}</span>
+      <span style="color:#67e8f9">${x.id}</span>
+      <span style="color:#9ca3af">${x.name}</span>
+    </div>`
+  ).join("") || '<div style="color:#6b7280">Belum ada akun...</div>';
+
+  if (j.status === "done" || j.status === "stopped") {
+    clearInterval(pollTimer);
+    document.getElementById("btnStart").disabled = false;
+    document.getElementById("btnStop").style.display = "none";
+    refreshAccounts();
+  }
+}
+
+async function refreshAccounts() {
+  const res = await fetch(API + "/api/accounts?limit=50");
+  const data = await res.json();
+  const box = document.getElementById("accountsBox");
+  if (!data.items.length) {
+    box.innerHTML = '<div style="color:#6b7280">Belum ada akun tersimpan</div>';
+    return;
+  }
+  box.innerHTML = `<div style="color:#9ca3af; margin-bottom:8px">Total: ${data.total}</div>` +
+    data.items.map(a => `
+      <div class="log-row">
+        <span class="badge ${rarityClass(a.rarity)}">${a.rarity}</span>
+        <span style="color:#67e8f9; min-width:100px">${a.account_id}</span>
+        <span style="color:#9ca3af">UID: ${a.uid}</span>
+        <span style="color:#9ca3af">PW: ${a.password}</span>
+        <span style="color:#9ca3af">${a.name}</span>
+      </div>
+    `).join("");
+}
+
+document.getElementById("btnStart").onclick = startGenerate;
+document.getElementById("btnStop").onclick = stopGenerate;
+</script>
+</body>
+</html>
